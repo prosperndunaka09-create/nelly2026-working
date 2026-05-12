@@ -852,14 +852,19 @@ export class SupabaseService {
         return { success: false, error: 'No balance to transfer from training account' };
       }
 
-      console.log(`[SupabaseService] Transferring $${trainingBalance} from training to personal account ${personalUser.id}`);
+      // Calculate 2% commission to transfer to personal account
+      const commissionAmount = Math.round(trainingBalance * 0.02 * 100) / 100;
+      const remainingTrainingBalance = Math.round((trainingBalance - commissionAmount) * 100) / 100;
 
-      // Update training account - mark as completed and reset balance
+      console.log(`[SupabaseService] Transferring 2% commission ($${commissionAmount}) from training to personal account ${personalUser.id}`);
+      console.log(`[SupabaseService] Training account will retain: $${remainingTrainingBalance}`);
+
+      // Update training account - mark as completed and deduct commission
       const { error: updateTrainingError } = await supabase
         .from('users')
         .update({
           training_completed: true,
-          balance: 0,
+          balance: remainingTrainingBalance,
           total_earned: trainingUser.total_earned || 0,
           updated_at: new Date().toISOString()
         })
@@ -870,12 +875,12 @@ export class SupabaseService {
         return { success: false, error: 'Failed to update training account: ' + updateTrainingError.message };
       }
 
-      // Update personal account - add the transferred balance
+      // Update personal account - add only the commission amount (2%)
       const { error: updatePersonalError } = await supabase
         .from('users')
         .update({
-          balance: currentPersonalBalance + trainingBalance,
-          total_earned: (personalUser.total_earned || 0) + trainingBalance,
+          balance: currentPersonalBalance + commissionAmount,
+          total_earned: (personalUser.total_earned || 0) + commissionAmount,
           training_completed: true, // Also mark personal account training as completed
           updated_at: new Date().toISOString()
         })
@@ -886,29 +891,29 @@ export class SupabaseService {
         return { success: false, error: 'Failed to update personal account: ' + updatePersonalError.message };
       }
 
-      // Create transaction record for training account (debit)
+      // Create transaction record for training account (debit - commission deduction)
       await this.createTransaction({
         user_id: trainingUserId,
         type: 'withdrawal',
-        amount: trainingBalance,
-        description: `Training completed - Balance transferred to personal account (${personalUser.email})`,
+        amount: commissionAmount,
+        description: `Training completed - 2% commission transferred to personal account (${personalUser.email})`,
         status: 'completed'
       });
 
-      // Create transaction record for personal account (credit)
+      // Create transaction record for personal account (credit - commission received)
       await this.createTransaction({
         user_id: personalUser.id,
         type: 'earning',
-        amount: trainingBalance,
-        description: `Training completed - Balance received from training account (${trainingUser.email})`,
+        amount: commissionAmount,
+        description: `Training completed - 2% commission received from training account (${trainingUser.email})`,
         status: 'completed'
       });
 
-      console.log(`[SupabaseService] Successfully transferred $${trainingBalance} from training to personal account`);
+      console.log(`[SupabaseService] Successfully transferred 2% commission ($${commissionAmount}) from training to personal account`);
       
       return { 
         success: true, 
-        transferredAmount: trainingBalance,
+        transferredAmount: commissionAmount,
       };
     } catch (error: any) {
       console.error('[SupabaseService] Exception completing training:', error);

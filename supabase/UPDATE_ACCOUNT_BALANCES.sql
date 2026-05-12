@@ -7,24 +7,13 @@
 -- ============================================
 -- TRAINING ACCOUNT UPDATE
 -- ============================================
--- Target: Balance = 2556.61, Total earned = 1456.61 only
+-- Target: Balance = 2505.48 (2556.61 - 51.13 commission), Total earned = 1456.61 only
 
 UPDATE public.users
 SET 
-    balance = 2556.61,
+    balance = 2505.48,
     total_earned = 1456.61,
     updated_at = NOW()
-WHERE account_type = 'training';
-
--- Verify training account update
-SELECT 
-    'Training Account After Update' as account_type,
-    email,
-    display_name,
-    balance,
-    total_earned,
-    account_type
-FROM public.users
 WHERE account_type = 'training';
 
 -- ============================================
@@ -49,29 +38,6 @@ SET
     updated_at = NOW()
 WHERE account_type = 'personal';
 
--- Verify personal account update
-SELECT 
-    'Personal Account After Update' as account_type,
-    email,
-    display_name,
-    balance,
-    total_earned,
-    account_type
-FROM public.users
-WHERE account_type = 'personal';
-
--- ============================================
--- FINAL VERIFICATION
--- ============================================
-SELECT 
-    'FINAL VERIFICATION' as status,
-    account_type,
-    COUNT(*) as count,
-    SUM(balance) as total_balance,
-    SUM(total_earned) as total_earned
-FROM public.users
-GROUP BY account_type;
-
 -- ============================================
 -- LOG THE BALANCE UPDATE
 -- ============================================
@@ -84,7 +50,3 @@ SELECT
     'completed'
 FROM public.users
 WHERE account_type IN ('training', 'personal');
-
-RAISE NOTICE '✅ Account balances updated successfully!';
-RAISE NOTICE '✅ Training account: Balance = 2556.61, Total earned = 1456.61';
-RAISE NOTICE '✅ Personal account: Balance = 51.13 (training commission only)';
