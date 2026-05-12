@@ -25,7 +25,7 @@ const WalletSection: React.FC = () => {
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const safeWallets = wallets || [];
-  const primaryWallet = safeWallets.find(w => w.is_primary);
+  const primaryWallet = safeWallets.find(w => w.is_default);
 
   const validateAddress = (address: string, type: string): boolean => {
     if (!address.trim()) {
@@ -401,7 +401,7 @@ const WalletSection: React.FC = () => {
                   <div className="min-w-0">
                     <div className="flex items-center gap-2">
                       <span className="text-sm font-medium text-white">{w.wallet_type}</span>
-                      {w.is_primary && <span className="px-1.5 py-0.5 bg-indigo-500/20 text-indigo-400 text-[10px] font-bold rounded">PRIMARY</span>}
+                      {w.is_default && <span className="px-1.5 py-0.5 bg-indigo-500/20 text-indigo-400 text-[10px] font-bold rounded">PRIMARY</span>}
                     </div>
                     <code className="text-xs text-gray-500 font-mono">{truncateAddress(w.wallet_address)}</code>
                   </div>

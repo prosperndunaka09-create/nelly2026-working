@@ -64,7 +64,7 @@ export interface Wallet {
   user_id: string;
   wallet_address: string;
   wallet_type: string;
-  is_primary: boolean;
+  is_default: boolean;
   created_at: string;
   
   // Balance tracking
@@ -1076,7 +1076,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           user_id: user.id,
           wallet_address: walletAddress,
           wallet_type: walletType,
-          is_primary: wallets.length === 0
+          is_default: wallets.length === 0
         });
       
       if (error) {

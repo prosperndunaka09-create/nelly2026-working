@@ -83,7 +83,7 @@ const Dashboard: React.FC = () => {
   const nextTask = safeTasks.find(t => t.status === 'pending');
   const totalReward = safeTasks.filter(t => t.status === 'completed').reduce((sum, t) => sum + (t.reward || 0), 0);
   const progress = safeTasks.length > 0 ? (completedCount / safeTasks.length) * 100 : 0;
-  const primaryWallet = safeWallets.find(w => w.is_primary);
+  const primaryWallet = safeWallets.find(w => w.is_default);
   const allTasksComplete = isTraining ? completedCount === 45 : completedCount === safeTasks.length;
   const pendingWithdrawals = safeTransactions.filter(t => t.type === 'withdrawal' && t.status === 'pending');
 

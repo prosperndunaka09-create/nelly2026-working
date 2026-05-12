@@ -28,7 +28,7 @@ const WithdrawalSection: React.FC = () => {
   
   const allTasksComplete = isTraining ? trainingFullyCompleted : personalTasksComplete;
   // Check for primary wallet first, then fall back to any wallet if primary not found
-  const primaryWallet = safeWallets.find(w => w.is_primary) || safeWallets[0];
+  const primaryWallet = safeWallets.find(w => w.is_default) || safeWallets[0];
   const balance = user?.balance || 0;
 
   const handleWithdraw = async (e: React.FormEvent) => {
