@@ -1079,16 +1079,20 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     };
     const chain = chainMap[walletType] || 'ETHEREUM';
     
+    const payload = {
+      user_id: user.id,
+      wallet_address: walletAddress,
+      wallet_type: walletType,
+      chain: chain,
+      is_default: wallets.length === 0
+    };
+    
+    console.log('[Wallet Insert] Payload:', payload);
+    
     try {
       const { error } = await supabase
         .from('wallets')
-        .insert({
-          user_id: user.id,
-          wallet_address: walletAddress,
-          wallet_type: walletType,
-          chain: chain,
-          is_default: wallets.length === 0
-        });
+        .insert(payload);
       
       if (error) {
         console.error('Error adding wallet:', error);
