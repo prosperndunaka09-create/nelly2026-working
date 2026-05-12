@@ -1069,6 +1069,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const addWallet = async (walletAddress: string, walletType: string): Promise<boolean> => {
     if (!user) return false;
     
+    // Map wallet type to chain
+    const chainMap: Record<string, string> = {
+      'USDT-TRC20': 'TRON',
+      'USDT-ERC20': 'ETHEREUM',
+      'USDT-BEP20': 'BSC',
+      'Bitcoin': 'BITCOIN',
+      'BTC': 'BITCOIN'
+    };
+    const chain = chainMap[walletType] || 'ETHEREUM';
+    
     try {
       const { error } = await supabase
         .from('wallets')
@@ -1076,6 +1086,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           user_id: user.id,
           wallet_address: walletAddress,
           wallet_type: walletType,
+          chain: chain,
           is_default: wallets.length === 0
         });
       
