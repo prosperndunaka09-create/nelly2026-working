@@ -344,10 +344,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
               console.log('[loadUserData] Loading wallet state from localStorage:', parsedWallet);
               setWalletState(parsedWallet);
             }
-          } else if (!preserveWalletState) {
-            // Initialize walletState from training account balance if no wallet data exists
-            // Only initialize if not preserving existing wallet state
-            console.log('[loadUserData] Initializing wallet state (preserveWalletState=false)');
+          } else if (preserveWalletState && walletState.available_balance > 0) {
+            // Only preserve existing wallet state if it has a non-zero balance
+            console.log('[loadUserData] Preserving existing wallet state with balance:', walletState.available_balance);
+          } else {
+            // Initialize walletState from training account balance if no wallet data exists or wallet is empty
+            console.log('[loadUserData] Initializing wallet state (no localStorage wallet or empty wallet)');
             const initialBalance = user?.balance || 1100;
             const initialTotalEarned = user?.total_earned || 0;
             const initialWallet: WalletState = {
@@ -360,8 +362,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             setWalletState(initialWallet);
             // Persist initial wallet state to localStorage
             localStorage.setItem(`training_wallet_${emailKey}`, JSON.stringify(initialWallet));
-          } else {
-            console.log('[loadUserData] Preserving existing wallet state (preserveWalletState=true)');
           }
           console.log('[loadUserData] Training branch - completed successfully');
         } catch (error) {
