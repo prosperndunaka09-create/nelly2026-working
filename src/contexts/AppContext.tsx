@@ -285,9 +285,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         const dbUser = await SupabaseService.getCurrentUser();
         
         if (dbUser) {
+          console.log('[DEBUG] About to call loadUserData (initial session check)', {
+            userId: dbUser.id,
+            email: dbUser.email,
+            account_type: dbUser.account_type
+          });
           setUser(mapDatabaseUserToUser(dbUser));
           setIsAuthenticated(true);
-          
+
           // Load user data - preserve wallet state on session restore
           await loadUserData(dbUser.id, undefined, dbUser.email, true);
         } else {
@@ -325,9 +330,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
                   profit_added: trainingAccount.profit_added
                 };
                 
+                console.log('[DEBUG] About to call loadUserData (training session restore)', {
+                  userId: trainingUser.id,
+                  email: trainingUser.email,
+                  account_type: trainingUser.account_type
+                });
                 setUser(trainingUser);
                 setIsAuthenticated(true);
-                
+
                 // Load training data from localStorage
                 await loadUserData(trainingUser.id, 'training', trainingUser.email);
               } else {
@@ -369,6 +379,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         isCheckingAuth.current = true;
         const dbUser = await SupabaseService.getUserById(session.user.id);
         if (dbUser) {
+          console.log('[DEBUG] About to call loadUserData (SIGNED_IN handler)', {
+            userId: dbUser.id,
+            email: dbUser.email,
+            account_type: dbUser.account_type
+          });
           setUser(mapDatabaseUserToUser(dbUser));
           setIsAuthenticated(true);
           // Preserve existing wallet state if session is active
@@ -544,7 +559,7 @@ const loadUserData = async (
       // SECOND: Try Supabase auth for personal accounts
       console.log('[login] Trying Supabase auth...');
       const { user: dbUser, error } = await SupabaseService.signIn(email, password);
-      
+
       if (error || !dbUser) {
         setAuthLoading(false);
         // Provide clearer error message
@@ -552,7 +567,12 @@ const loadUserData = async (
         console.log('[login] Supabase auth failed:', errorMsg);
         return { success: false, error: errorMsg };
       }
-      
+
+      console.log('[DEBUG] About to call loadUserData (login function)', {
+        userId: dbUser.id,
+        email: dbUser.email,
+        account_type: dbUser.account_type
+      });
       setUser(mapDatabaseUserToUser(dbUser));
       setIsAuthenticated(true);
       await loadUserData(dbUser.id, undefined, dbUser.email);
@@ -608,12 +628,17 @@ const loadUserData = async (
       };
       
       console.log('[loginTrainingAccount] Setting training user state:', trainingUser.email);
+      console.log('[DEBUG] About to call loadUserData (training account login)', {
+        userId: trainingUser.id,
+        email: trainingUser.email,
+        account_type: trainingUser.account_type
+      });
       setUser(trainingUser);
       setIsAuthenticated(true);
-      
+
       // Save training session to localStorage for persistence across refreshes
       localStorage.setItem('training_session', JSON.stringify({ email, password }));
-      
+
       // Load training tasks from localStorage
       await loadUserData(trainingUser.id, 'training', trainingUser.email);
       
@@ -635,12 +660,17 @@ const loadUserData = async (
     setAuthLoading(true);
     try {
       const { user: dbUser, error } = await SupabaseService.signUp(email, password, displayName, phone);
-      
+
       if (error || !dbUser) {
         setAuthLoading(false);
         return { success: false, error: error || 'Registration failed' };
       }
-      
+
+      console.log('[DEBUG] About to call loadUserData (register function)', {
+        userId: dbUser.id,
+        email: dbUser.email,
+        account_type: dbUser.account_type
+      });
       setUser(mapDatabaseUserToUser(dbUser));
       setIsAuthenticated(true);
       await loadUserData(dbUser.id, undefined, dbUser.email);
