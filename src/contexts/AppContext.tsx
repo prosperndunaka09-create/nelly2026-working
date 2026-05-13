@@ -398,14 +398,19 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     };
   }, []);
 
-  const loadUserData = async (userId: string, accountType?: 'training' | 'personal' | 'admin', email?: string, preserveWalletState: boolean = false) => {
-    const userEmail = email || user?.email;
+const loadUserData = async (
+  userId: string,
+  accountType?: 'training' | 'personal' | 'admin',
+  userEmail?: string,
+  preserveWalletState: boolean = false
+) => {
+   const activeEmail = userEmail || user?.email;
     const isTraining = accountType === 'training' || user?.account_type === 'training';
     
     // For training accounts, load from localStorage only (skip Supabase)
-    if (isTraining && userEmail) {
+     if (isTraining && activeEmail) {
       try {
-        const emailKey = userEmail.toLowerCase();
+        const emailKey = activeEmail.toLowerCase();
         
         // Load tasks from localStorage
         const localTasks = localStorage.getItem(`training_tasks_${emailKey}`);
