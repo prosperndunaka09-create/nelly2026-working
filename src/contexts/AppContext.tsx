@@ -621,7 +621,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       });
       setUser(mapDatabaseUserToUser(dbUser));
       setIsAuthenticated(true);
-      await loadUserData(dbUser.id, undefined, dbUser.email);
+      await loadUserData(dbUser.id, dbUser.account_type, dbUser.email);
       setAuthLoading(false);
       
       toast({
@@ -719,7 +719,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       });
       setUser(mapDatabaseUserToUser(dbUser));
       setIsAuthenticated(true);
-      await loadUserData(dbUser.id, undefined, dbUser.email);
+      await loadUserData(dbUser.id, dbUser.account_type, dbUser.email);
       setAuthLoading(false);
       
       toast({
