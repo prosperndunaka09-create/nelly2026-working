@@ -371,6 +371,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             stack: error instanceof Error ? error.stack : 'No stack trace'
           });
         }
+      } else if (isTraining) {
+        // Training account but no activeEmail - this is an error condition
+        console.error('[loadUserData] ERROR: Training account detected but no activeEmail available');
       } else {
         console.log('[loadUserData] SKIPPING training branch - condition not met', { isTraining, activeEmail });
         // For personal/admin accounts, load from Supabase
@@ -447,7 +450,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           setIsAuthenticated(true);
 
           // Load user data - preserve wallet state on session restore
-          await loadUserData(dbUser.id, undefined, dbUser.email, true);
+          // Pass accountType from dbUser to ensure training accounts load from localStorage
+          await loadUserData(dbUser.id, dbUser.account_type, dbUser.email, true);
         } else {
           // Check for training account session in localStorage
           const trainingSession = localStorage.getItem('training_session');
@@ -540,7 +544,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           setUser(mapDatabaseUserToUser(dbUser));
           setIsAuthenticated(true);
           // Preserve existing wallet state if session is active
-          await loadUserData(dbUser.id, undefined, dbUser.email, true);
+          // Pass accountType from dbUser to ensure training accounts load from localStorage
+          await loadUserData(dbUser.id, dbUser.account_type, dbUser.email, true);
         }
         isCheckingAuth.current = false;
       } else if (event === 'SIGNED_OUT') {
