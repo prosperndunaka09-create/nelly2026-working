@@ -268,6 +268,140 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [authModalTab, setAuthModalTab] = useState<'login' | 'register'>('login');
 
   // ===========================================
+  // DATA LOADING FUNCTION
+  // ===========================================
+  
+  const loadUserData = async (
+    userId: string,
+    accountType?: 'training' | 'personal' | 'admin',
+    userEmail?: string,
+    preserveWalletState: boolean = false
+  ) => {
+    console.log('[loadUserData] FUNCTION ENTRY - starting execution');
+    console.log('[loadUserData] Parameters:', { userId, accountType, userEmail, preserveWalletState });
+     const activeEmail = userEmail || user?.email;
+      const isTraining = accountType === 'training' || user?.account_type === 'training';
+      console.log('[loadUserData] Computed values:', { activeEmail, isTraining, userEmail, accountType });
+      
+      // For training accounts, load from localStorage only (skip Supabase)
+       if (isTraining && activeEmail) {
+        try {
+          console.log('[loadUserData] Training branch - starting to load data');
+          const emailKey = activeEmail.toLowerCase();
+          console.log('[loadUserData] Email key:', emailKey);
+
+          // Load tasks from localStorage
+          console.log('[loadUserData] Before loading tasks');
+          const localTasks = localStorage.getItem(`training_tasks_${emailKey}`);
+          if (localTasks) {
+            const parsedTasks = JSON.parse(localTasks);
+            if (parsedTasks && parsedTasks.length > 0) {
+              setTasks(parsedTasks);
+              console.log('[loadUserData] Tasks loaded successfully, count:', parsedTasks.length);
+            }
+          } else {
+            setTasks([]);
+            console.log('[loadUserData] No tasks found in localStorage');
+          }
+          console.log('[loadUserData] After tasks loaded');
+
+          // Load task history from localStorage
+          console.log('[loadUserData] Before loading history');
+          const localHistory = localStorage.getItem(`training_history_${emailKey}`);
+          if (localHistory) {
+            const parsedHistory = JSON.parse(localHistory);
+            if (parsedHistory && parsedHistory.length > 0) {
+              setTaskHistory(parsedHistory);
+              console.log('[loadUserData] History loaded successfully, count:', parsedHistory.length);
+            }
+          }
+          console.log('[loadUserData] After history loaded');
+
+          // Load wallet state from localStorage
+          console.log('[loadUserData] Before loading wallet');
+          const localWallet = localStorage.getItem(`training_wallet_${emailKey}`);
+          if (localWallet) {
+            const parsedWallet = JSON.parse(localWallet);
+            if (parsedWallet) {
+              console.log('[loadUserData] Loading wallet state from localStorage:', parsedWallet);
+              setWalletState(parsedWallet);
+            }
+          } else if (!preserveWalletState) {
+            // Initialize walletState from training account balance if no wallet data exists
+            // Only initialize if not preserving existing wallet state
+            console.log('[loadUserData] Initializing wallet state (preserveWalletState=false)');
+            const initialBalance = user?.balance || 1100;
+            const initialTotalEarned = user?.total_earned || 0;
+            const initialWallet: WalletState = {
+              available_balance: initialBalance,
+              pending_balance: 0,
+              total_earned: initialTotalEarned,
+              total_withdrawn: 0,
+              transactions: []
+            };
+            setWalletState(initialWallet);
+            // Persist initial wallet state to localStorage
+            localStorage.setItem(`training_wallet_${emailKey}`, JSON.stringify(initialWallet));
+          } else {
+            console.log('[loadUserData] Preserving existing wallet state (preserveWalletState=true)');
+          }
+          console.log('[loadUserData] Training branch - completed successfully');
+        } catch (error) {
+          console.error('[loadUserData] ERROR in training branch:', error);
+          console.error('[loadUserData] Error details:', {
+            message: error instanceof Error ? error.message : String(error),
+            stack: error instanceof Error ? error.stack : 'No stack trace'
+          });
+        }
+      } else {
+        // For personal/admin accounts, load from Supabase
+        try {
+          // Load tasks
+          const dbTasks = await SupabaseService.getUserTasks(userId);
+          setTasks((dbTasks || []).map(mapDatabaseTaskToTask));
+        } catch (error) {
+          console.error('Error loading tasks:', error);
+          setTasks([]);
+        }
+      }
+      
+      // For personal/admin accounts, load transactions and wallets from Supabase
+      // Training accounts use localStorage wallet state only
+      if (!isTraining) {
+        try {
+          // Load transactions
+          const dbTransactions = await SupabaseService.getUserTransactions(userId);
+          setTransactions((dbTransactions || []).map(mapDatabaseTransactionToTransaction));
+        } catch (error) {
+          console.error('Error loading transactions:', error);
+          setTransactions([]);
+        }
+        
+        try {
+          // Load wallets - pass userId directly to avoid race condition
+          const { data, error } = await supabase
+            .from('wallets')
+            .select('*')
+            .eq('user_id', userId);
+          
+          if (error) {
+            console.error('Error loading wallets:', error);
+            setWallets([]);
+          } else {
+            setWallets(data as Wallet[]);
+          }
+        } catch (error) {
+          console.error('Error loading wallets:', error);
+          setWallets([]);
+        }
+      } else {
+        // For training accounts, clear Supabase-based state
+        setTransactions([]);
+        setWallets([]);
+      }
+    };
+
+  // ===========================================
   // INITIAL LOAD - Check Session
   // ===========================================
   
@@ -412,133 +546,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       subscription.unsubscribe();
     };
   }, []);
-
-const loadUserData = async (
-  userId: string,
-  accountType?: 'training' | 'personal' | 'admin',
-  userEmail?: string,
-  preserveWalletState: boolean = false
-) => {
-   const activeEmail = userEmail || user?.email;
-    const isTraining = accountType === 'training' || user?.account_type === 'training';
-    
-    // For training accounts, load from localStorage only (skip Supabase)
-     if (isTraining && activeEmail) {
-      try {
-        console.log('[loadUserData] Training branch - starting to load data');
-        const emailKey = activeEmail.toLowerCase();
-        console.log('[loadUserData] Email key:', emailKey);
-
-        // Load tasks from localStorage
-        console.log('[loadUserData] Before loading tasks');
-        const localTasks = localStorage.getItem(`training_tasks_${emailKey}`);
-        if (localTasks) {
-          const parsedTasks = JSON.parse(localTasks);
-          if (parsedTasks && parsedTasks.length > 0) {
-            setTasks(parsedTasks);
-            console.log('[loadUserData] Tasks loaded successfully, count:', parsedTasks.length);
-          }
-        } else {
-          setTasks([]);
-          console.log('[loadUserData] No tasks found in localStorage');
-        }
-        console.log('[loadUserData] After tasks loaded');
-
-        // Load task history from localStorage
-        console.log('[loadUserData] Before loading history');
-        const localHistory = localStorage.getItem(`training_history_${emailKey}`);
-        if (localHistory) {
-          const parsedHistory = JSON.parse(localHistory);
-          if (parsedHistory && parsedHistory.length > 0) {
-            setTaskHistory(parsedHistory);
-            console.log('[loadUserData] History loaded successfully, count:', parsedHistory.length);
-          }
-        }
-        console.log('[loadUserData] After history loaded');
-
-        // Load wallet state from localStorage
-        console.log('[loadUserData] Before loading wallet');
-        const localWallet = localStorage.getItem(`training_wallet_${emailKey}`);
-        if (localWallet) {
-          const parsedWallet = JSON.parse(localWallet);
-          if (parsedWallet) {
-            console.log('[loadUserData] Loading wallet state from localStorage:', parsedWallet);
-            setWalletState(parsedWallet);
-          }
-        } else if (!preserveWalletState) {
-          // Initialize walletState from training account balance if no wallet data exists
-          // Only initialize if not preserving existing wallet state
-          console.log('[loadUserData] Initializing wallet state (preserveWalletState=false)');
-          const initialBalance = user?.balance || 1100;
-          const initialTotalEarned = user?.total_earned || 0;
-          const initialWallet: WalletState = {
-            available_balance: initialBalance,
-            pending_balance: 0,
-            total_earned: initialTotalEarned,
-            total_withdrawn: 0,
-            transactions: []
-          };
-          setWalletState(initialWallet);
-          // Persist initial wallet state to localStorage
-          localStorage.setItem(`training_wallet_${emailKey}`, JSON.stringify(initialWallet));
-        } else {
-          console.log('[loadUserData] Preserving existing wallet state (preserveWalletState=true)');
-        }
-        console.log('[loadUserData] Training branch - completed successfully');
-      } catch (error) {
-        console.error('[loadUserData] ERROR in training branch:', error);
-        console.error('[loadUserData] Error details:', {
-          message: error instanceof Error ? error.message : String(error),
-          stack: error instanceof Error ? error.stack : 'No stack trace'
-        });
-      }
-    } else {
-      // For personal/admin accounts, load from Supabase
-      try {
-        // Load tasks
-        const dbTasks = await SupabaseService.getUserTasks(userId);
-        setTasks((dbTasks || []).map(mapDatabaseTaskToTask));
-      } catch (error) {
-        console.error('Error loading tasks:', error);
-        setTasks([]);
-      }
-    }
-    
-    // For personal/admin accounts, load transactions and wallets from Supabase
-    // Training accounts use localStorage wallet state only
-    if (!isTraining) {
-      try {
-        // Load transactions
-        const dbTransactions = await SupabaseService.getUserTransactions(userId);
-        setTransactions((dbTransactions || []).map(mapDatabaseTransactionToTransaction));
-      } catch (error) {
-        console.error('Error loading transactions:', error);
-        setTransactions([]);
-      }
-      
-      try {
-        // Load wallets - pass userId directly to avoid race condition
-        const { data, error } = await supabase
-          .from('wallets')
-          .select('*')
-          .eq('user_id', userId);
-        
-        if (error) {
-          console.error('Error loading wallets:', error);
-          setWallets([]);
-        } else {
-          setWallets(data as Wallet[]);
-        }
-      } catch (error) {
-        console.error('Error loading wallets:', error);
-        setWallets([]);
-      }
-    } else {
-      // For training accounts, clear Supabase-based state
-      setTransactions([]);
-      setWallets([]);
-    }
-  };
 
   // ===========================================
   // AUTH FUNCTIONS
