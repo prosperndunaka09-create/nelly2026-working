@@ -1088,6 +1088,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     };
     
     console.log('[Wallet Insert] Payload:', payload);
+    console.log('FINAL WALLET INSERT', payload);
     
     try {
       const { error } = await supabase
@@ -1133,12 +1134,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       
       if (error) {
         console.error('Error fetching wallets:', error);
+        // Do not reset balance on wallet fetch error
         return;
       }
       
       setWallets(data as Wallet[]);
     } catch (error) {
       console.error('Exception fetching wallets:', error);
+      // Do not reset balance on wallet fetch error
     }
   };
 
