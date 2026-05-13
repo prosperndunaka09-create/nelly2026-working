@@ -282,9 +282,27 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
      const activeEmail = userEmail || user?.email;
       const isTraining = accountType === 'training' || user?.account_type === 'training';
       console.log('[loadUserData] Computed values:', { activeEmail, isTraining, userEmail, accountType });
-      
+
+      // Check localStorage keys for training data
+      const emailKey = activeEmail.toLowerCase();
+      const walletKey = `training_wallet_${emailKey}`;
+      const tasksKey = `training_tasks_${emailKey}`;
+      const historyKey = `training_history_${emailKey}`;
+
+      console.log('[loadUserData] Checking localStorage keys:', {
+        emailKey,
+        walletKey,
+        tasksKey,
+        historyKey,
+        hasWallet: !!localStorage.getItem(walletKey),
+        hasTasks: !!localStorage.getItem(tasksKey),
+        hasHistory: !!localStorage.getItem(historyKey)
+      });
+
       // For training accounts, load from localStorage only (skip Supabase)
+      console.log('[loadUserData] Training branch condition:', { isTraining, activeEmail, shouldEnter: isTraining && activeEmail });
        if (isTraining && activeEmail) {
+        console.log('[loadUserData] ENTERING training branch');
         try {
           console.log('[loadUserData] Training branch - starting to load data');
           const emailKey = activeEmail.toLowerCase();
@@ -354,6 +372,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           });
         }
       } else {
+        console.log('[loadUserData] SKIPPING training branch - condition not met', { isTraining, activeEmail });
         // For personal/admin accounts, load from Supabase
         try {
           // Load tasks
