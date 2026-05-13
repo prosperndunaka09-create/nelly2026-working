@@ -366,7 +366,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         if (dbUser) {
           setUser(mapDatabaseUserToUser(dbUser));
           setIsAuthenticated(true);
-          await loadUserData(dbUser.id);
+          // Preserve existing wallet state if session is active
+          await loadUserData(dbUser.id, undefined, undefined, true);
         }
         isCheckingAuth.current = false;
       } else if (event === 'SIGNED_OUT') {
@@ -375,6 +376,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         setTasks([]);
         setTransactions([]);
         setWallets([]);
+        // Clear wallet state only on SIGNED_OUT
+        setWalletState({
+          available_balance: 0,
+          pending_balance: 0,
+          total_earned: 0,
+          total_withdrawn: 0,
+          transactions: []
+        });
       }
     });
     
@@ -383,7 +392,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     };
   }, []);
 
-  const loadUserData = async (userId: string, accountType?: 'training' | 'personal' | 'admin', email?: string) => {
+  const loadUserData = async (userId: string, accountType?: 'training' | 'personal' | 'admin', email?: string, preserveWalletState: boolean = false) => {
     const userEmail = email || user?.email;
     const isTraining = accountType === 'training' || user?.account_type === 'training';
     
@@ -419,9 +428,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           if (parsedWallet) {
             setWalletState(parsedWallet);
           }
-        } else {
+        } else if (!preserveWalletState) {
           // Initialize walletState from training account balance if no wallet data exists
-          // Use the user state if available, otherwise use default training balance
+          // Only initialize if not preserving existing wallet state
           const initialBalance = user?.balance || 1100;
           const initialTotalEarned = user?.total_earned || 0;
           const initialWallet: WalletState = {
