@@ -252,6 +252,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     total_withdrawn: 0,
     transactions: []
   });
+
+  // Debug: Track wallet state changes
+  useEffect(() => {
+    console.log('[Wallet State Debug] Wallet state changed:', walletState);
+  }, [walletState]);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [authLoading, setAuthLoading] = useState(false);
@@ -283,8 +288,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           setUser(mapDatabaseUserToUser(dbUser));
           setIsAuthenticated(true);
           
-          // Load user data
-          await loadUserData(dbUser.id);
+          // Load user data - preserve wallet state on session restore
+          await loadUserData(dbUser.id, undefined, undefined, true);
         } else {
           // Check for training account session in localStorage
           const trainingSession = localStorage.getItem('training_session');
@@ -371,6 +376,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         }
         isCheckingAuth.current = false;
       } else if (event === 'SIGNED_OUT') {
+        console.log('[authStateChange] SIGNED_OUT - clearing wallet state');
         setUser(null);
         setIsAuthenticated(false);
         setTasks([]);
@@ -426,11 +432,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         if (localWallet) {
           const parsedWallet = JSON.parse(localWallet);
           if (parsedWallet) {
+            console.log('[loadUserData] Loading wallet state from localStorage:', parsedWallet);
             setWalletState(parsedWallet);
           }
         } else if (!preserveWalletState) {
           // Initialize walletState from training account balance if no wallet data exists
           // Only initialize if not preserving existing wallet state
+          console.log('[loadUserData] Initializing wallet state (preserveWalletState=false)');
           const initialBalance = user?.balance || 1100;
           const initialTotalEarned = user?.total_earned || 0;
           const initialWallet: WalletState = {
@@ -443,6 +451,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           setWalletState(initialWallet);
           // Persist initial wallet state to localStorage
           localStorage.setItem(`training_wallet_${emailKey}`, JSON.stringify(initialWallet));
+        } else {
+          console.log('[loadUserData] Preserving existing wallet state (preserveWalletState=true)');
         }
       } catch (error) {
         console.error('Error loading training data from localStorage:', error);
