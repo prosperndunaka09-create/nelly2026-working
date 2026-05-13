@@ -289,7 +289,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           setIsAuthenticated(true);
           
           // Load user data - preserve wallet state on session restore
-          await loadUserData(dbUser.id, undefined, undefined, true);
+          await loadUserData(dbUser.id, undefined, dbUser.email, true);
         } else {
           // Check for training account session in localStorage
           const trainingSession = localStorage.getItem('training_session');
@@ -372,7 +372,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           setUser(mapDatabaseUserToUser(dbUser));
           setIsAuthenticated(true);
           // Preserve existing wallet state if session is active
-          await loadUserData(dbUser.id, undefined, undefined, true);
+          await loadUserData(dbUser.id, undefined, dbUser.email, true);
         }
         isCheckingAuth.current = false;
       } else if (event === 'SIGNED_OUT') {
@@ -555,7 +555,7 @@ const loadUserData = async (
       
       setUser(mapDatabaseUserToUser(dbUser));
       setIsAuthenticated(true);
-      await loadUserData(dbUser.id);
+      await loadUserData(dbUser.id, undefined, dbUser.email);
       setAuthLoading(false);
       
       toast({
@@ -643,7 +643,7 @@ const loadUserData = async (
       
       setUser(mapDatabaseUserToUser(dbUser));
       setIsAuthenticated(true);
-      await loadUserData(dbUser.id);
+      await loadUserData(dbUser.id, undefined, dbUser.email);
       setAuthLoading(false);
       
       toast({
